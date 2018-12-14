@@ -19,6 +19,7 @@ function parse_reactions(fname)
         for line in eachline(file)
             rxstr,rate = split(line, ",")
             rxstr = replace(strip(rxstr), "-" => "--")
+            rxstr = replace(strip(rxstr), "_" => "0")
             push!(rxstrs, strip(rxstr))
             push!(rxrates, parse(Float64, rate))
         end
@@ -27,7 +28,7 @@ function parse_reactions(fname)
     rxstrs, rxrates
 end
 
-function build_rxnetwork(networkname, rxstrs, rxrates)
+function build_rxnetwork(networkname, rxstrs, rxrates; printrxs=false, kwargs...)
     
     # string representing the network
     rnstr = "@reaction_network $(networkname) begin\n"
@@ -36,6 +37,10 @@ function build_rxnetwork(networkname, rxstrs, rxrates)
         rnstr *= "\t $rate, $rxstr \n"
     end
     rnstr *= "end\n"
+
+    if printrxs
+        print(rnstr)
+    end
 
     # build the network using DiffEqBiological
     rn = eval( Meta.parse(rnstr) )
@@ -54,7 +59,7 @@ end
 
 
 # for parsing the simple format from the book by Thanh et al.
-function get_rxnetwork_simple(networkname, specs_ic_file, rxs_file)
+function get_rxnetwork_simple(networkname, specs_ic_file, rxs_file; kwargs...)
 
     # parse initial conditions
     specs_ic = parse_species(specs_ic_file)
@@ -63,7 +68,7 @@ function get_rxnetwork_simple(networkname, specs_ic_file, rxs_file)
     rxstrs,rxrates = parse_reactions(rxs_file)
 
     # build the DiffEqBiological representation of the network
-    rn = build_rxnetwork(networkname, rxstrs, rxrates)
+    rn = build_rxnetwork(networkname, rxstrs, rxrates; kwargs...)
     initialpop = get_init_condit(rn, specs_ic)
 
     rn,initialpop
