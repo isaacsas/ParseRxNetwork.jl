@@ -71,5 +71,5 @@ function get_rxnetwork_simple(networkname, specs_ic_file, rxs_file; kwargs...)
     rn = build_rxnetwork(networkname, rxstrs, rxrates; kwargs...)
     initialpop = get_init_condit(rn, specs_ic)
 
-    rn,initialpop
+    rn, initialpop
 end
