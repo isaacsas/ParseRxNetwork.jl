@@ -31,7 +31,7 @@ end
 function build_rxnetwork(networkname, rxstrs, rxrates; printrxs=false, kwargs...)
     
     # string representing the network
-    rnstr = "@reaction_network $(networkname) begin\n"
+    rnstr = "@min_reaction_network $(networkname) begin\n"
     for (i,rxstr) in enumerate(rxstrs)
         rate = rxrates[i]
         rnstr *= "\t $rate, $rxstr \n"
