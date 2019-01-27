@@ -1,3 +1,5 @@
+MIT License
+
 The ParseRxNetwork.jl package is licensed under the MIT "Expat" License:
 
 > Copyright (c) 2018: Samuel Isaacson (isaacsas).
