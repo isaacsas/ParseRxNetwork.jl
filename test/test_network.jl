@@ -7,10 +7,10 @@ const to = TimerOutput()
 reset_timer!(to)
 
 # parameters
-method = RSSA()       
+method = RSSA()
 nsteps = 1e5                  # time to simulate to
 networkname = "tester"
-tf = 3600.
+tf = 10.
 #speciesf = path to species initial population file
 #rxsf = path to reaction network file
 
@@ -34,9 +34,9 @@ println("added jumps")
 # sol = integrator.sol
 # println("done")
 
-show(to)
-sol = solve(jump_prob, SSAStepper(), saveat=tf/1000)
 
+@timeit to "solve" sol = solve(jump_prob, SSAStepper(), saveat=tf/1000)
+show(to)
 
 # plot
 #labs = [String(sym) for i=1:1, sym in rn.syms];
