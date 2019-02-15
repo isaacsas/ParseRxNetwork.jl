@@ -1,4 +1,5 @@
-using ParseRxNetwork, DiffEqBase, DiffEqBiological, DiffEqJump, OrdinaryDiffEq, Plots
+using ParseRxNetwork
+using DiffEqBase, DiffEqBiological, DiffEqJump, OrdinaryDiffEq, Plots
 
 using TimerOutputs
 
