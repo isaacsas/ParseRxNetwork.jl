@@ -1,3 +1,5 @@
+# download input files from: https://gist.github.com/isaacsas/7648fe065f1884307a2906a0a48ea12b
+# then add ParseRxNetwork package (unregistered)
 #] 
 # add https://github.com/isaacsas/ParseRxNetwork.jl.git
 
@@ -5,16 +7,14 @@ using DiffEqBase, DiffEqBiological,Plots,OrdinaryDiffEq, Sundials
 using ParseRxNetwork
 using TimerOutputs
 
-
 # parameters
 networkname = "tester"
 tf = 10.
 
-# input files
+# input files, specify path 
 #speciesf = "SOME-PATH-TO/BCR_pop.txt"
 #rxsf = "SOME-PATH-TO/BCR_rxn.txt"
 
-# Create a TimerOutput, this is the main type that keeps track of everything.
 const to = TimerOutput()
 reset_timer!(to)
 
@@ -25,9 +25,14 @@ reset_timer!(to)
 show(to)
 
 # note solvers run _much_ faster the second time 
+reset_timer!(to); @timeit to "Rodas4" begin sol = solve(oprob,Rodas4(autodiff=false),dense=false,calck=false); end; show(to)
+reset_timer!(to); @timeit to "Rodas4" begin sol = solve(oprob,Rodas4(autodiff=false),dense=false,calck=false); end; show(to)
+reset_timer!(to); @timeit to "Rodas4" begin sol = solve(oprob,Rodas4(autodiff=false),dense=false); end;
+
+reset_timer!(to); @timeit to "CVODE_BDF" begin sol = solve(oprob,CVODE_BDF(linear_solver=:GMRES),dense=false); end; show(to)
+reset_timer!(to); @timeit to "CVODE_BDF" begin sol = solve(oprob,CVODE_BDF(linear_solver=:GMRES),dense=false); end; show(to)
+
+# note, restart REPL to see timing with first pass overhead for the next solver
 reset_timer!(to); @timeit to "CVODE_BDF" begin sol = solve(oprob,CVODE_BDF(),dense=false); end; show(to)
 reset_timer!(to); @timeit to "CVODE_BDF" begin sol = solve(oprob,CVODE_BDF(),dense=false); end; show(to)
 
-reset_timer!(to); @timeit to "Rodas4" begin sol = solve(oprob,Rodas4(autodiff=false),dense=false); end;
-reset_timer!(to); @timeit to "Rodas4" begin sol = solve(oprob,Rodas4(autodiff=false),dense=false); end;
-reset_timer!(to); @timeit to "Rodas4" begin sol = solve(oprob,Rodas4(autodiff=false),dense=false,calck=false); end; show(to)
