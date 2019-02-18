@@ -17,7 +17,7 @@ tf = 10.
 
 
 # get the reaction network
-@timeit to "netgen" rn,initialpop = get_rxnetwork_simple(networkname, speciesf, rxsf; printrxs = false)
+@timeit to "netgen" rn,initialpop = get_rxnetwork_simple(RSSAFile(), networkname, speciesf, rxsf; printrxs = false)
 println("network parsed")
 
 # one simulation

@@ -1,4 +1,4 @@
-function parse_species(fname)
+function parse_species(ft::RSSANetwork, fname)
     specs_ic = Dict{Symbol,Int}()
 
     open(fname, "r") do file
@@ -11,7 +11,7 @@ function parse_species(fname)
     specs_ic
 end
 
-function parse_reactions(fname)
+function parse_reactions(ft::RSSANetwork, fname)
     rxstrs  = Vector{String}()
     rxrates = Vector{Float64}()
 
@@ -28,7 +28,7 @@ function parse_reactions(fname)
     rxstrs, rxrates
 end
 
-function build_rxnetwork(networkname, rxstrs, rxrates; printrxs=false, kwargs...)
+function build_rxnetwork(ft::RSSANetwork, networkname, rxstrs, rxrates; printrxs=false, kwargs...)
     
     # string representing the network
     rnstr = "@min_reaction_network $(networkname) begin\n"
@@ -48,7 +48,7 @@ function build_rxnetwork(networkname, rxstrs, rxrates; printrxs=false, kwargs...
     rn
 end
 
-function get_init_condit(rn, specs_ic)
+function get_init_condit(ft::RSSANetwork, rn, specs_ic)
     icvec = zeros(Int64, length(specs_ic))    
     for (i,sym) in enumerate(rn.syms)
         icvec[i] = specs_ic[sym]
@@ -59,17 +59,17 @@ end
 
 
 # for parsing the simple format from the book by Thanh et al.
-function get_rxnetwork_simple(networkname, specs_ic_file, rxs_file; kwargs...)
+function get_rxnetwork_simple(ft::RSSANetwork, networkname, specs_ic_file, rxs_file; kwargs...)
 
     # parse initial conditions
-    specs_ic = parse_species(specs_ic_file)
+    specs_ic = parse_species(ft, specs_ic_file)
 
     # parse reaction network
-    rxstrs,rxrates = parse_reactions(rxs_file)
+    rxstrs,rxrates = parse_reactions(ft, rxs_file)
 
     # build the DiffEqBiological representation of the network
-    rn = build_rxnetwork(networkname, rxstrs, rxrates; kwargs...)
-    initialpop = get_init_condit(rn, specs_ic)
+    rn = build_rxnetwork(ft, networkname, rxstrs, rxrates; kwargs...)
+    initialpop = get_init_condit(ft, rn, specs_ic)
 
     rn, initialpop
 end
