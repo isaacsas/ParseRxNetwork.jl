@@ -86,19 +86,38 @@ function parse_species(ft::BNGNetwork, lines, idx, ptoids, pvals)
     u0exprs,symstoids,idx
 end
 
-const REACTIONS_BLOCK_START = "begin species"
-const REACTIONS_BLOCK_END = "end species"
+const REACTIONS_BLOCK_START = "begin reactions"
+const REACTIONS_BLOCK_END = "end reactions"
 function parse_reactions(ft, lines, idx, ptoids, pvals, symstoids)
+
+    # reverse Dicts
+    idstosyms = Vector{Symbol}(undef,length(symstoids))
+    for (k,v) in symstoids
+        idstosyms[v] = k
+    end
+
+    idstops = Vector{Symbol}(undef,length(ptoids))
+    for (k,v) in ptoids
+        idstops[v] = k
+    end
 
     idx = seek_to_block(lines, idx, REACTIONS_BLOCK_START)
 
-    while lines[idx] != REACTIONS_BLOCK_END
-        vals         = split(lines[idx])        
-        reactantsyms = (parse(Int,rsym) for rsym in split(vals[2],",")
-        productsyms  = (parse(Int,psym) for psym in split(vals[3],",")
-        rateconst    = Meta.parse(vals[4])
+    idtosymstr = id -> (id==0) ? ∅ : string(idstosyms[id])
 
+    rxstrs = "begin\n"
+    while lines[idx] != REACTIONS_BLOCK_END
+        vals        = split(lines[idx])        
+        reactantids = (parse(Int,rsym) for rsym in split(vals[2],","))
+        productids  = (parse(Int,psym) for psym in split(vals[3],","))
+        rateconst   = Meta.parse(vals[4])
+        
+        pstr = "" # TODO
+        rstr = join((idtosymstr(rid) for rid in reactantids), "+")
+        pstr = join((idtosymstr(pid) for pid in productids), "+")
+        
         # create string for this reaction
+        push!(rxstrs, string(", "))
 
         idx += 1
         (idx > length(lines)) && error("Block: ", REACTIONS_BLOCK_END, " was never found.")
@@ -114,7 +133,7 @@ function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
     idx   = 1
     ptoids,pvals,idx      = parse_params(ft, lines, idx)
     u0exprs,symstoids,idx = parse_species(ft, lines, idx, ptoids, pvals)
-    rxstrs,rxrates,idx    = parse_reactions(ft, lines, idx, ptoids, pvals, symstoids)
+    rxstrs,idx            = parse_reactions(ft, lines, idx, ptoids, pvals, symstoids)
     close(file)
     
     # build the DiffEqBiological representation of the network
