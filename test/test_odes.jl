@@ -20,7 +20,7 @@ reset_timer!(to)
 
 # get the reaction network
 @timeit to "netgen" rn,initialpop = get_rxnetwork_simple(RSSAFile(), networkname, speciesf, rxsf; printrxs = false)
-@timeit to "addodes" addodes!(rn; build_symjac=false, build_symfuncs=false)
+@timeit to "addodes" addodes!(rn; build_jac=false, build_symfuncs=false)
 @timeit to "ODEProb" oprob = ODEProblem(rn,convert.(Float64,initialpop),(0.,tf))
 show(to)
 
