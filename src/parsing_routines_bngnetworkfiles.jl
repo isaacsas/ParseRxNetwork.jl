@@ -64,7 +64,7 @@ function parse_params(ft::BNGNetwork, lines, idx)
         # value could be an expression
         pval = Meta.parse(vals[3])
         
-        # save numeric parameters
+        # save numeric parameters or Symbols corresponding to numeric constants
         if vals[end] == "Constant"
             push!(psyms, psym)
         else   # replace non-numeric Symbols or Exprs
@@ -85,41 +85,44 @@ function parse_params(ft::BNGNetwork, lines, idx)
     ptoids,pvals,psyms,idx
 end
 
-stripchars = (s, r) -> replace(s, Regex("[$r]") => "")
 const CHARS_TO_STRIP = ",~!()."
+stripchars = (s) -> replace(s, Regex("[$CHARS_TO_STRIP]") => "")
+hasstripchars = (s) -> occursin(Regex("[$CHARS_TO_STRIP]"), s)
 const SPECIES_BLOCK_START = "begin species"
 const SPECIES_BLOCK_END = "end species"
+const MAX_SYM_LEN = 8
 function parse_species(ft::BNGNetwork, lines, idx, ptoids, pvals)
 
     idx = seek_to_block(lines, idx, SPECIES_BLOCK_START)
 
     # parse species
+    shortsymstoids = Dict{Symbol,Int}()
     symstoids = Dict{Symbol,Int}()
+    shortsymstosyms = Dict{Symbol,Symbol}()
     u0exprs   = Vector{Any}()
+    cnt = 1
     while lines[idx] != SPECIES_BLOCK_END
         vals = split(lines[idx])
         sidx = parse(Int,vals[1])
-        ssym = Symbol(stripchars(vals[2], CHARS_TO_STRIP))
-        symstoids[ssym] = sidx
+        sym = Symbol(vals[2])
+        shortsym = length(vals[2]) < MAX_SYM_LEN ? Symbol(stripchars(vals[2])) : Symbol(string("S$sidx"))
+        shortsymstoids[shortsym] = sidx
+        shortsymstosyms[shortsym] = sym
         push!(u0exprs,  Meta.parse(vals[3]))
         idx += 1
         (idx > length(lines)) && error("Block: ", SPECIES_BLOCK_END, " was never found.")
     end
 
-    u0exprs,symstoids,idx
+    u0exprs,shortsymstoids,shortsymstosyms,idx
 end
 
 const REACTIONS_BLOCK_START = "begin reactions"
 const REACTIONS_BLOCK_END = "end reactions"
-function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoids)
+function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoids, idstosyms)
 
-    # reverse Dicts
-    idstosyms = Vector{Symbol}(undef,length(symstoids))
-    for (k,v) in symstoids
-        idstosyms[v] = k
-    end
-
+    # map from species id to shortsym
     idtosymstr = id -> (id==0) ? ∅ : string(idstosyms[id])
+
     idx = seek_to_block(lines, idx, REACTIONS_BLOCK_START)
     write(rxiobuf, "begin\n")
     while lines[idx] != REACTIONS_BLOCK_END
@@ -158,6 +161,27 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
     idx
 end
 
+const GROUPS_BLOCK_START = "begin groups"
+const GROUPS_BLOCK_END = "end groups"
+function parse_groups(ft::BNGNetwork, lines, idx, idstoshortsyms, rn)
+    
+    idx = seek_to_block(lines, idx, GROUPS_BLOCK_START)
+    namestoids = Dict{Symbol,Vector{Int}}()
+    while lines[idx] != GROUPS_BLOCK_END
+        vals = split(lines[idx])
+        name = Symbol(vals[2])
+
+        # map from BioNetGen id to reaction_network id
+        ids = [rn.syms_to_ints[idstoshortsyms[parse(Int,val)]] for val in split(vals[3],",")]        
+
+        # remap ids to ordering within the reaction_network
+        namestoids[name] = ids
+        idx += 1
+        (idx > length(lines)) && error("Block: ", GROUPS_BLOCK_END, " was never found.")
+    end
+
+    namestoids,idx
+end
 
 # for parsing a subset of the BioNetGen .net file format
 function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
@@ -165,31 +189,53 @@ function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
     file  = open(rxfilename, "r");
     lines = readlines(file)
     idx   = 1
-    println("Parsing parameters...")
+    print("Parsing parameters...")
     ptoids,pvals,psyms,idx = parse_params(ft, lines, idx)
     println("done")
-    println("Parsing species...")
-    u0exprs,symstoids,idx = parse_species(ft, lines, idx, ptoids, pvals)
+
+    print("Parsing species...")
+    u0exprs,shortsymstoids,shortsymstosyms,idx = parse_species(ft, lines, idx, ptoids, pvals)
     println("done")
-    println("Parsing reactions...")
+    
+    # map from species id to short sym
+    idstoshortsyms = Vector{Symbol}(undef,length(shortsymstoids))
+    for (k,v) in shortsymstoids
+        idstoshortsyms[v] = k
+    end
+
+    print("Parsing reactions...")
     rxiobuf = IOBuffer()
-    write(rxiobuf, string(networkname, " = @min_reaction_network "))
-    idx = parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoids)
+    write(rxiobuf, string("@min_reaction_network ", networkname, " "))
+    idx = parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, shortsymstoids, idstoshortsyms)
     println("done")
-    close(file)
+
+    # finish the min_reaction_network string
     foreach(psym -> write(rxiobuf, " ", string(psym)), psyms)
     write(rxiobuf, "\n")
     rxstrs = String(take!(rxiobuf))
 
-    # get the initial condition
-    u₀ = [Float64(recursive_replace!(u0expr, ptoids, pvals)) for u0expr in u0exprs]
-
     # build the DiffEqBiological representation of the network
+    print("Building network...")
     #rn = rxstrs
     rn = eval(Meta.parse(rxstrs))    
+    println("done")
 
-    # parameters values for constant params
+    print("Parsing groups...")
+    groupstoids,idx = parse_groups(ft, lines, idx, idstoshortsyms, rn)
+    println("done")
+    close(file)
+
+    # get the initial condition
+    u0 = [Float64(recursive_replace!(u0expr, ptoids, pvals)) for u0expr in u0exprs]
+    u₀ = similar(u0)
+
+    # reorder to reaction_network ordering
+    for i in eachindex(u0)
+        u₀[rn.syms_to_ints[idstoshortsyms[i]]] = u0[i]
+    end
+
+    # get parameter values for numeric params
     p = [pvals[ptoids[psym]] for psym in psyms]
 
-    rn,u₀,p
+    ParsedReactionNetwork(rn, u₀, p=p, symstonames=shortsymstosyms, groupstoids=groupstoids)
 end

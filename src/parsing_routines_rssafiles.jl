@@ -31,12 +31,14 @@ end
 function build_rxnetwork(ft::RSSANetwork, networkname, rxstrs, rxrates; printrxs=false, kwargs...)
     
     # string representing the network
-    rnstr = "@min_reaction_network $(networkname) begin\n"
+    rxiobuf = IOBuffer()
+    write(rxiobuf, "@min_reaction_network $(networkname) begin\n")
     for (i,rxstr) in enumerate(rxstrs)
         rate = rxrates[i]
-        rnstr *= "\t $rate, $rxstr \n"
+        write(rxiobuf, "\t $rate, $rxstr \n")
     end
-    rnstr *= "end\n"
+    write(rxiobuf, "end\n")
+    rnstr = String(take!(rxiobuf))
 
     if printrxs
         print(rnstr)
@@ -59,7 +61,7 @@ end
 
 
 # for parsing the simple format from the book by Thanh et al.
-function get_rxnetwork_simple(ft::RSSANetwork, networkname, specs_ic_file, rxs_file; kwargs...)
+function loadrxnetwork(ft::RSSANetwork, networkname, specs_ic_file, rxs_file; kwargs...)
 
     # parse initial conditions
     specs_ic = parse_species(ft, specs_ic_file)
@@ -71,5 +73,5 @@ function get_rxnetwork_simple(ft::RSSANetwork, networkname, specs_ic_file, rxs_f
     rn = build_rxnetwork(ft, networkname, rxstrs, rxrates; kwargs...)
     initialpop = get_init_condit(ft, rn, specs_ic)
 
-    rn, initialpop
+    ParsedReactionNetwork(rn, initialpop)
 end
