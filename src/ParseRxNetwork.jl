@@ -1,6 +1,6 @@
 module ParseRxNetwork
 
-using DiffEqBiological
+using DataStructures, DiffEqBiological
 
 abstract type NetworkFileFormat end
 
