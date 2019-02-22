@@ -1,14 +1,13 @@
 name = "ParseRxNetwork"
 uuid = "3905eab2-f8c3-11e8-1e0c-9f35f29e76ae"
-authors = ["Samuel Isaacson <sam.isaacson@gmail.com>"]
+authors = ["Samuel Isaacson <isaacsas@users.noreply.github.com>"]
 version = "0.1.0"
 
 [deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 DiffEqBiological = "eb300fae-53e8-50a0-950c-e21f52c2b7e0"
 DiffEqJump = "c894b116-72e5-5b58-be3c-e6d8d4ac2b12"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
-HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
-Weave = "44d3d7a6-8a23-5bf8-98c5-b353f8df5ec9"
