@@ -17,13 +17,23 @@ struct ParsedReactionNetwork
     "Parameters"
     p
 
+    "Parameter Expressions"
+    paramexprs
+
     "Dict from short sym in rn.syms to full sym for species name"
     symstonames
 
     "Dict from lumped species name (symbol) to group of species ids"
     groupstoids
 end
-ParsedReactionNetwork(rn, u₀; p=nothing, symstonames=nothing, groupstoids=nothing) = ParsedReactionNetwork(rn, u₀, p, symstonames, groupstoids)
+ParsedReactionNetwork(rn, u₀; p=nothing, 
+                              paramexprs=nothing,
+                              symstonames=nothing, 
+                              groupstoids=nothing) = 
+                              ParsedReactionNetwork(rn, u₀, p, 
+                                                    paramexprs, 
+                                                    symstonames, 
+                                                    groupstoids)
 
 export RSSANetwork, BNGNetwork, ParsedReactionNetwork
 
