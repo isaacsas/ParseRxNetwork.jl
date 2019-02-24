@@ -25,15 +25,20 @@ struct ParsedReactionNetwork
 
     "Dict from lumped species name (symbol) to group of species ids"
     groupstoids
+
+    "string representation of the generated reaction_network macro"
+    rnstr
 end
 ParsedReactionNetwork(rn, u₀; p=nothing, 
                               paramexprs=nothing,
                               symstonames=nothing, 
-                              groupstoids=nothing) = 
+                              groupstoids=nothing,
+                              rnstr=nothing) = 
                               ParsedReactionNetwork(rn, u₀, p, 
                                                     paramexprs, 
                                                     symstonames, 
-                                                    groupstoids)
+                                                    groupstoids,
+                                                    rnstr)
 
 export RSSANetwork, BNGNetwork, ParsedReactionNetwork
 

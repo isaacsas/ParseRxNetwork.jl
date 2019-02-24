@@ -127,10 +127,10 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
     write(rxiobuf, "begin\n")
     while lines[idx] != REACTIONS_BLOCK_END
         vals        = split(lines[idx])        
-        reactantids = (parse(Int,rsym) for rsym in split(vals[2],","))
-        productids  = (parse(Int,psym) for psym in split(vals[3],","))
-        #rateconst   = Meta.parse(vals[4])
+        reactantids = (parse(Int,rid) for rid in split(vals[2],","))
+        productids  = (parse(Int,pid) for pid in split(vals[3],","))
         
+        #rateconst   = Meta.parse(vals[4])
         # rctype = typeof(rateconst)
         # if rctype <: Number
         #     pstr = string(rateconst)
@@ -148,11 +148,8 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
         # else
         #     error(string("Rate constant in reaction is not a Number, Symbol or Expr, at reaction: ", vals[1]))
         # end
+        
         pstr = vals[4]
-
-        # check for invalid characters in parameter string        
-        @assert !hasstripchars(pstr) string("Invalid characters in a reaction rate expression, rx number: ", vals[1], ", expr is: ", pstr)
-
         reactstr = join((idtosymstr(rid) for rid in reactantids), " + ")
         productstr = join((idtosymstr(pid) for pid in productids), " + ")
         
@@ -230,7 +227,6 @@ function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
 
     # build the DiffEqBiological representation of the network
     print("Building network...")
-    #rn = rxstrs
     rn = eval(Meta.parse(rxstrs))    
     println("done")
 
@@ -254,5 +250,6 @@ function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
     ParsedReactionNetwork(rn, u₀; p = p, 
                                   paramexprs = pvals, 
                                   symstonames = shortsymstosyms, 
-                                  groupstoids = groupstoids)
+                                  groupstoids = groupstoids,
+                                  rnstr = rxstrs)
 end

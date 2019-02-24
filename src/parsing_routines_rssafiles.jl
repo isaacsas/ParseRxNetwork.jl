@@ -47,7 +47,7 @@ function build_rxnetwork(ft::RSSANetwork, networkname, rxstrs, rxrates; printrxs
     # build the network using DiffEqBiological
     rn = eval( Meta.parse(rnstr) )
 
-    rn
+    rn,rnstr
 end
 
 function get_init_condit(ft::RSSANetwork, rn, specs_ic)
@@ -70,8 +70,8 @@ function loadrxnetwork(ft::RSSANetwork, networkname, specs_ic_file, rxs_file; kw
     rxstrs,rxrates = parse_reactions(ft, rxs_file)
 
     # build the DiffEqBiological representation of the network
-    rn = build_rxnetwork(ft, networkname, rxstrs, rxrates; kwargs...)
+    rn,rnstr = build_rxnetwork(ft, networkname, rxstrs, rxrates; kwargs...)
     initialpop = get_init_condit(ft, rn, specs_ic)
 
-    ParsedReactionNetwork(rn, initialpop)
+    ParsedReactionNetwork(rn, initialpop; rnstr=rnstr)
 end
