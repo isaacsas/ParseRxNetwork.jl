@@ -16,36 +16,6 @@ function seek_to_block(lines, idx, start_string)
     idx += 1
 end
 
-#Recursively traverses an expression and replaces a symbol with another symbol or expression
-# here psyms stores the allowed symbols in the final expression
-function recursive_replace!(expr::Any, ptoids, pvals, psyms)
-    if typeof(expr) == Symbol
-        if expr ∉ psyms
-            haskey(ptoids,expr) && return pvals[ptoids[expr]]
-        end
-    elseif typeof(expr) == Expr
-        for i = 1:length(expr.args)
-            expr.args[i] = recursive_replace!(expr.args[i], ptoids, pvals, psyms)
-        end
-    end
-    return expr
-end
-
-# recursively traverses an expression and replaces all Exprs and Symbols with numerical values
-function recursive_replace!(expr::Any, ptoids, pvals)
-    if typeof(expr) == Symbol
-        haskey(ptoids,expr) && return recursive_replace!(pvals[ptoids[expr]], ptoids, pvals)
-    elseif typeof(expr) == Expr
-        for i = 1:length(expr.args)
-            expr.args[i] = recursive_replace!(expr.args[i], ptoids, pvals)
-        end
-        return expr
-    end
-    @assert typeof(expr) <: Number string("Error, expr type was not a number.")
-    return expr
-end
-
-
 const PARAM_BLOCK_START = "begin parameters"
 const PARAM_BLOCK_END = "end parameters"
 function parse_params(ft::BNGNetwork, lines, idx)
@@ -64,22 +34,11 @@ function parse_params(ft::BNGNetwork, lines, idx)
 
         # value could be an expression
         pval = Meta.parse(vals[3])
-        
-        # save numeric parameters or Symbols corresponding to numeric constants
+
+        # BNG Constant is a number, so save sym
         (vals[end] == "Constant") && push!(psyms, psym)
-        # if vals[end] == "Constant"
-        #     push!(psyms, psym)
-        # else   # replace non-numeric Symbols or Exprs
-        #     if (typeof(pval) <: Symbol) 
-        #         (pval ∉ psyms) && (pval = pvals[ptoids[pval]])
-        #     else
-        #         @assert typeof(pval) <: Expr string("Expected expression for parameter value but got: ", typeof(pval), ", line idx = ", idx)
-        #         pval = recursive_replace!(pval, ptoids, pvals) #, psyms)
-        #     end
-        # end
 
         push!(pvals,pval)
-
         idx += 1
         (idx > length(lines)) && error("Block: ", PARAM_BLOCK_END, " was never found.")
     end
@@ -128,30 +87,10 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
     while lines[idx] != REACTIONS_BLOCK_END
         vals        = split(lines[idx])        
         reactantids = (parse(Int,rid) for rid in split(vals[2],","))
-        productids  = (parse(Int,pid) for pid in split(vals[3],","))
-        
-        #rateconst   = Meta.parse(vals[4])
-        # rctype = typeof(rateconst)
-        # if rctype <: Number
-        #     pstr = string(rateconst)
-        # elseif rctype <: Symbol
-        #     # if true constant use symbol
-        #     if rateconst ∈ psyms
-        #         pstr = string(rateconst)
-        #     else
-        #         pstr = string(pvals[ptoids[rateconst]])
-        #     end
-        # elseif rctype <: Expr
-        #     rateconst = recursive_replace!(rateconst, ptoids, pvals, psyms)
-        #     pstr = string(rateconst)
-        #     println("pstr = ", pstr)
-        # else
-        #     error(string("Rate constant in reaction is not a Number, Symbol or Expr, at reaction: ", vals[1]))
-        # end
-        
-        pstr = vals[4]
-        reactstr = join((idtosymstr(rid) for rid in reactantids), " + ")
-        productstr = join((idtosymstr(pid) for pid in productids), " + ")
+        productids  = (parse(Int,pid) for pid in split(vals[3],","))        
+        pstr        = vals[4]
+        reactstr    = join((idtosymstr(rid) for rid in reactantids), " + ")
+        productstr  = join((idtosymstr(pid) for pid in productids), " + ")
         
         # create string for this reaction
         write(rxiobuf, "  ", pstr, ", ", reactstr, " --> ", productstr, "\n")
@@ -185,14 +124,21 @@ function parse_groups(ft::BNGNetwork, lines, idx, idstoshortsyms, rn)
     namestoids,idx
 end
 
-function paramexprs_to_nums(ptoids, pvals)
+function exprs_to_nums(ptoids, pvals, u0exprs)
     p    = zeros(Float64, length(ptoids))
     pmod = Module()
     for (psym,pid) in ptoids
         p[pid] = Base.eval(pmod, :($psym = $(pvals[pid])))
     end
-    p
+
+    u0 = zeros(Float64, length(u0exprs))
+    for (i,u0expr) in enumerate(u0exprs)
+        u0[i] = Base.eval(pmod, :($u0expr))
+    end
+
+    p,u0
 end
+
 
 # for parsing a subset of the BioNetGen .net file format
 function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
@@ -235,17 +181,14 @@ function loadrxnetwork(ft::BNGNetwork, networkname, rxfilename; kwargs...)
     println("done")
     close(file)
 
-    # get the initial condition
-    u0 = [Float64(recursive_replace!(u0expr, ptoids, pvals)) for u0expr in u0exprs]
-    u₀ = similar(u0)
+    # get numeric values for parameters and u₀ 
+    p,u0 = exprs_to_nums(ptoids, pvals, u0exprs)
 
     # reorder species to reaction_network ordering
+    u₀ = similar(u0)
     for i in eachindex(u0)
         u₀[rn.syms_to_ints[idstoshortsyms[i]]] = u0[i]
     end
-
-    # get parameter values for numeric params
-    p = paramexprs_to_nums(ptoids, pvals)
 
     ParsedReactionNetwork(rn, u₀; p = p, 
                                   paramexprs = pvals, 

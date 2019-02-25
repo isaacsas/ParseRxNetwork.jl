@@ -13,11 +13,16 @@ networkname = "testbcrbng"
 tf = 10000.
 
 # BNG simulation data
-fname    = "../data/bcr/bcr.net"
-cdatfile = "../data/bcr/bcr.cdat"
-gdatfile = "../data/bcr/bcr.gdat"
+datadir  = joinpath(@__DIR__,"../data/bcr")
+fname    = joinpath(datadir, "bcr.net")
+cdatfile = joinpath(datadir, "bcr.cdat")
+gdatfile = joinpath(datadir, "bcr.gdat")
+print("getting cdat file...")
 cdatdf = CSV.File(cdatfile, delim=" ", ignorerepeated=true) |> DataFrame
+println("done")
+print("getting gdat file...")
 gdatdf = CSV.File(gdatfile, delim=" ", ignorerepeated=true) |> DataFrame
+println("done")
 
 const to = TimerOutput()
 reset_timer!(to)
@@ -32,17 +37,28 @@ u0 = u₀   #convert.(Float64, prn.u₀)
 @timeit to "bODEProb" boprob = ODEProblem(rnbng, u0, (0.,tf), p)
 show(to)
 
+
+
 # BNG simulation data testing
 asykgroups = prnbng.groupstoids[:Activated_Syk]
+asyksyms = findall(x -> x ∈ asykgroups, rnbng.syms_to_ints)
+asynbng = zeros(length(cdatdf[:time]))
+for sym in asyksyms
+    global asynbng
+    asynbng += cdatdf[sym]
+end
+
 
 # note solvers run _much_ faster the second time 
-# reset_timer!(to); @timeit to "BNG_CVODE_BDF" begin bsol = solve(boprob, CVODE_BDF(),dense=false, saveat=1., abstol=1e-8, reltol=1e-8); end; show(to)
+reset_timer!(to); @timeit to "BNG_CVODE_BDF" begin bsol = solve(boprob, CVODE_BDF(),dense=false, saveat=1., abstol=1e-8, reltol=1e-8); end; show(to)
 
-# basyk = sum(bsol[prnbng.groupstoids[:Activated_Syk],:], dims=1)
-# vars = sum(bsol[prnbng.groupstoids[:Ig_alpha_P],:],dims=1)
+basyk = sum(bsol[asykgroups,:], dims=1)
+#vars = sum(bsol[prnbng.groupstoids[:Ig_alpha_P],:],dims=1)
 
-# if doplot
-#     pyplot()
-#     plot(bsol.t[2:end], basyk'[2:end], label=:Activated_Syk, xscale=:log10)
-#     plot!(bsol.t[2:end], vars'[2:end], label=:Ig_alpha_P, xscale=:log10)
-# end
+if doplot
+    plotlyjs()
+    plot(gdatdf[:time][2:end], gdatdf[:Activated_Syk][2:end], xscale=:log10, label=:AsykGroup)
+    plot!(cdatdf[:time][2:end], asynbng[2:end], xscale=:log10, label=:AsykSum)
+    plot!(bsol.t[2:end], basyk'[2:end], label=:AsykDEBio, xscale=:log10)
+    # plot!(bsol.t[2:end], vars'[2:end], label=:Ig_alpha_P, xscale=:log10)
+end
