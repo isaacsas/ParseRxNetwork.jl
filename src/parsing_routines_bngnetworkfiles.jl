@@ -84,6 +84,7 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
 
     idx = seek_to_block(lines, idx, REACTIONS_BLOCK_START)
     write(rxiobuf, "begin\n")
+    cntdict = Dict{Int,Int}()
     while lines[idx] != REACTIONS_BLOCK_END
         vals        = split(lines[idx])        
         reactantids = (parse(Int,rid) for rid in split(vals[2],","))
@@ -91,6 +92,12 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
         pstr        = vals[4]
         reactstr    = join((idtosymstr(rid) for rid in reactantids), " + ")
         productstr  = join((idtosymstr(pid) for pid in productids), " + ")
+
+        # correct for higher-order rate rescalings by BioNetGen
+        empty!(cntdict)
+        foreach(rid -> haskey(cntdict,rid) ? (cntdict[rid] += 1) : (cntdict[rid]=1), reactantids)
+        scalefactor = prod(factorial, values(cntdict))
+        pstr = string(scalefactor, "*", pstr)
         
         # create string for this reaction
         write(rxiobuf, "  ", pstr, ", ", reactstr, " --> ", productstr, "\n")

@@ -3,7 +3,7 @@
 #] 
 # add https://github.com/isaacsas/ParseRxNetwork.jl.git
 
-using DiffEqBase, DiffEqBiological, Plots, OrdinaryDiffEq, Sundials, DataFrames, CSV
+using DiffEqBase, DiffEqBiological, Plots, OrdinaryDiffEq, Sundials, DataFrames, CSVFiles, LinearAlgebra
 using ParseRxNetwork
 using TimerOutputs
 
@@ -18,10 +18,12 @@ fname    = joinpath(datadir, "bcr.net")
 cdatfile = joinpath(datadir, "bcr.cdat")
 gdatfile = joinpath(datadir, "bcr.gdat")
 print("getting cdat file...")
-cdatdf = CSV.File(cdatfile, delim=" ", ignorerepeated=true) |> DataFrame
+#cdatdf = CSV.File(cdatfile, delim=" ", ignorerepeated=true) |> DataFrame
+cdatdf = DataFrame(load(File(format"CSV", cdatfile), header_exists=true, spacedelim=true) )
 println("done")
 print("getting gdat file...")
-gdatdf = CSV.File(gdatfile, delim=" ", ignorerepeated=true) |> DataFrame
+#gdatdf = CSV.File(gdatfile, delim=" ", ignorerepeated=true) |> DataFrame
+gdatdf = DataFrame(load(File(format"CSV", gdatfile), header_exists=true, spacedelim=true) )
 println("done")
 
 const to = TimerOutput()
@@ -62,3 +64,8 @@ if doplot
     plot!(bsol.t[2:end], basyk'[2:end], label=:AsykDEBio, xscale=:log10)
     # plot!(bsol.t[2:end], vars'[2:end], label=:Ig_alpha_P, xscale=:log10)
 end
+
+# test the error
+norm(gdatdf[:Activated_Syk] - asynbng, Inf)
+norm(gdatdf[:Activated_Syk] - basyk', Inf)
+norm(asynbng - basyk', Inf)
