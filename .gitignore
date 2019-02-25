@@ -1,3 +1,5 @@
+*.gdat
+*.cdat
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
