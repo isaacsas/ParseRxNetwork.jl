@@ -4,5 +4,5 @@ Provides importers to load reaction networks from several file formats. Currentl
 1. The basic format used by the [RSSA](https://www.cosbi.eu/research/prototypes/rssa) group at COSBI in their [model collection](https://www.cosbi.eu/prototypes/jLiexDeBIgFV4zxwnKiW97oc4BjTtIoRGajqdUz4.zip).
 2. A *subset* of the BioNetGen .net file format.
 
-Generated networks can currently then be output to
+Imported networks can then be output to
 1. [DiffEqBiological](https://github.com/JuliaDiffEq/DiffEqBiological.jl/), as a `min_reaction_network`.
