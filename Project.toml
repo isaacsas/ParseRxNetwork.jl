@@ -1,4 +1,4 @@
-name = "ParseRxNetwork"
+name = "ReactionNetworkImporter"
 uuid = "3905eab2-f8c3-11e8-1e0c-9f35f29e76ae"
 authors = ["Samuel Isaacson <isaacsas@users.noreply.github.com>"]
 version = "0.1.0"
