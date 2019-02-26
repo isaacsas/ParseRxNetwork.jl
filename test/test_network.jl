@@ -1,4 +1,4 @@
-using ParseRxNetwork
+using ReactionNetworkImporter
 using DiffEqBase, DiffEqBiological, DiffEqJump, OrdinaryDiffEq, Plots
 
 using TimerOutputs

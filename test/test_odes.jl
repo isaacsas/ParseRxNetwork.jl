@@ -1,10 +1,10 @@
 # download input files from: https://gist.github.com/isaacsas/7648fe065f1884307a2906a0a48ea12b
-# then add ParseRxNetwork package (unregistered)
+# then add ReactionNetworkImporter package (unregistered)
 #] 
-# add https://github.com/isaacsas/ParseRxNetwork.jl.git
+# add https://github.com/isaacsas/ReactionNetworkImporter.jl.git
 
 using DiffEqBase, DiffEqBiological,Plots,OrdinaryDiffEq, Sundials
-using ParseRxNetwork
+using ReactionNetworkImporter
 using TimerOutputs
 
 # parameters

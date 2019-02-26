@@ -1,4 +1,4 @@
-module ParseRxNetwork
+module ReactionNetworkImporter
 
 using DataStructures, DiffEqBiological
 
