@@ -16,6 +16,19 @@ function seek_to_block(lines, idx, start_string)
     idx += 1
 end
 
+# for swapping out BioNetGen symbols
+const REPLACEMENT_DICT = Dict( :ln => :log )
+function recursive_replace!(expr::Any, replace_requests::Dict{Symbol,Symbol}=REPLACEMENT_DICT)
+    if typeof(expr) == Symbol
+        haskey(replace_requests,expr) && return replace_requests[expr]
+    elseif typeof(expr) == Expr
+        for i = 1:length(expr.args)
+            expr.args[i] = recursive_replace!(expr.args[i], replace_requests)
+        end
+    end
+    return expr
+end
+
 const PARAM_BLOCK_START = "begin parameters"
 const PARAM_BLOCK_END = "end parameters"
 function parse_params(ft::BNGNetwork, lines, idx)
@@ -34,6 +47,7 @@ function parse_params(ft::BNGNetwork, lines, idx)
 
         # value could be an expression
         pval = Meta.parse(vals[3])
+        (typeof(pval) <: Expr) && recursive_replace!(pval)
 
         # BNG Constant is a number, so save sym
         (vals[end] == "Constant") && push!(psyms, psym)
@@ -89,7 +103,8 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
         vals        = split(lines[idx])        
         reactantids = (parse(Int,rid) for rid in split(vals[2],","))
         productids  = (parse(Int,pid) for pid in split(vals[3],","))        
-        pstr        = vals[4]
+        rateexpr    = Meta.parse(vals[4])
+        (typeof(rateexpr) <: Expr) && recursive_replace!(rateexpr)
         reactstr    = join((idtosymstr(rid) for rid in reactantids), " + ")
         productstr  = join((idtosymstr(pid) for pid in productids), " + ")
 
@@ -97,7 +112,7 @@ function parse_reactions!(rxiobuf, ft, lines, idx, ptoids, pvals, psyms, symstoi
         empty!(cntdict)
         foreach(rid -> haskey(cntdict,rid) ? (cntdict[rid] += 1) : (cntdict[rid]=1), reactantids)
         scalefactor = prod(factorial, values(cntdict))
-        pstr = string(scalefactor, "*", pstr)
+        pstr = string(scalefactor, "*", string(rateexpr))
         
         # create string for this reaction
         write(rxiobuf, "  ", pstr, ", ", reactstr, " --> ", productstr, "\n")
