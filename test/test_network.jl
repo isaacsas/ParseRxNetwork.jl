@@ -55,7 +55,7 @@ show(to)
 
 rasyk = sum(rsol[prnbng.groupstoids[:Activated_Syk],:], dims=1)
 basyk = sum(bsol[prnbng.groupstoids[:Activated_Syk],:], dims=1)
-plot(sol.t, rasyk', label=:rsol)
-plot!(sol.t, basyk', label=:bsol)
+plot(rsol.t, rasyk', label=:rsol)
+plot!(bsol.t, basyk', label=:bsol)
 
 
